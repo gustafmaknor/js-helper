@@ -9,8 +9,9 @@
  * Author: jrudenstam
  * http://typisktmig.se
  */
+
 (function(definition){
-if(typeof define==="function"){define(definition);}
+if(typeof define==="function"){define(definition)}
 else{this["helper"]=definition}
 })({
 		// http://stackoverflow.com/questions/7238177/detect-htmlcollection-nodelist-in-javascript
@@ -248,7 +249,9 @@ else{this["helper"]=definition}
 
 		ajax: function( url, callback, data, async ) {
 			var method = data ? 'POST' : 'GET', // Default to 'GET'
+			
 			async = async || true, // Default to async mode
+
 			req = this.ajaxObject();
 
 			if (!req) {
@@ -276,10 +279,11 @@ else{this["helper"]=definition}
 				}
 
 				if (req.status != 200 && req.status != 304) {
+					callback(req, req.status);
 					return;
 				}
 
-				callback(req);
+				callback(req, null);
 			}
 
 			if (req.readyState == 4) {
