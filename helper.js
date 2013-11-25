@@ -246,51 +246,66 @@ else{this["helper"]=definition}
 
 			return xmlhttp;
 		})(),
-
-		ajax: function( url, callback, data, async ) {
-			var method = data ? 'POST' : 'GET', // Default to 'GET'
-			
-			async = async || true, // Default to async mode
-
-			req = this.ajaxObject();
-
-			if (!req) {
-				return;
-			}
-			
-			req.open(method,url,async);
-
-			// Set extra headers passed to ajax()
-			if (arguments.length > 4) {
-				for (var i = 4; i < arguments.length; i++){
-					if (arguments[i][0] && arguments[i][0]){
-						req.setRequestHeader(arguments[i][0], arguments[i][1]);
+		/*
+		url = The url to request
+		settings = A settingsobject containting:
+			{
+				done 		[fn]	= success callback
+				fail 		[fn]	= fail callback 								[optional]
+				context 	[obj]	= "this-context" for callbacks					[optional]
+				method 		[str]	= HTTP-verb, defaults to GET 					[optional]
+				async 		[bool]	= async or sync request, defaults to true=async [optional]
+				data 		[str]	= postdata										[optional]
+				headers 	[obj]	= additional requestheaders						[optional]
+					{
+						name:value,
+						name:value
 					}
-				}
+				timeout 	[num]	= set a request timeout to abort request 		[optional]
 			}
-
-			if (data) {
-				req.setRequestHeader('Content-type','application/x-www-form-urlencoded');
-			}
-
-			req.onreadystatechange = function () {
-				if (req.readyState != 4) {
-					return;
+		*/
+		ajax:function(url, settings){
+			var req=this.ajaxObject();
+			var done=(!settings.context)?settings.done:(function(done, ctx){
+				return function(data){
+					done.call(ctx, data);
 				}
-
-				if (req.status != 200 && req.status != 304) {
-					callback(req, req.status);
-					return;
+			})(settings.done, settings.context);
+			var fail=(settings.fail)?(!settings.context)?settings.fail:(function(fail, ctx){
+				return function(data){
+					fail.call(ctx, data);
 				}
-
-				callback(req, null);
-			}
-
-			if (req.readyState == 4) {
+			})(settings.fail, settings.context):undefined;
+			if(!req){
+				if(fail){
+					fail(null, 'Unable to create XHR.');
+				}
 				return;
 			}
+			req.open(settings.method || "GET", url, settings.async || true);
+			for(var p in settings.headers){
+				req.setRequestHeader(p,settings.headers[p]);
+			}
+			if(settings.data) { req.setRequestHeader('Content-type','application/x-www-form-urlencoded'); }
+			var reqTimer;
+			if(settings.timeout){
+				reqTimer=setTimeout(function(){
+					req.abort();
+					if(fail) { fail(req, "Request timeout"); }
+				}, settings.timeout);
+			}
+			req.onreadystatechange=function(){
+				if (req.readyState != 4) { return; }
+				if (reqTimer) { clearTimeout(reqTimer); }
+				if (req.status != 200 && req.status != 304) {
+					if(fail) { fail(req, req.status); }
+					return;
+				}
+				done(req);
+			}
+			if (req.readyState == 4) { return; }
+			req.send(settings.data || null);
 
-			req.send(data);
 		},
 		jsonpCallback:function( callback ){
 			window.cbs = window.cbs || [];
